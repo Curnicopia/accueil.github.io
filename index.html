@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panneau de bord</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e21;
+    --panel:#24282c;
+    --panel-2:#2e3338;
+    --text:#edeae4;
+    --text-dim:#9ca3a8;
+    --accent:#e8a33d;
+    --accent-2:#4fa8a0;
+    --border:#3a3f44;
+    --danger:#d9634d;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    background:var(--bg);
+    min-height:100vh;
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
+    transition:background 0.4s ease;
+  }
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background:
+      radial-gradient(circle, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.55) 100%);
+    pointer-events:none;
+    z-index:0;
+  }
+  #app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
+
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:28px;
+    gap:12px;
+  }
+  header h1{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin:0;
+  }
+  #clock{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:28px;
+    font-weight:500;
+    letter-spacing:0.02em;
+  }
+  #clock span{font-size:14px;color:var(--text-dim);display:block;font-family:'Inter',sans-serif;font-weight:400;margin-top:-2px;}
+
+  .icon-btn{
+    width:38px;height:38px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:rgba(36,40,44,0.7);
+    color:var(--text-dim);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    backdrop-filter:blur(6px);
+    transition:all .15s ease;
+  }
+  .icon-btn:hover{color:var(--text);border-color:var(--accent);}
+  .icon-btn svg{width:18px;height:18px;}
+
+  header .actions{display:flex;gap:8px;}
+
+  .category{
+    margin-bottom:26px;
+    border-radius:14px;
+    padding:16px 16px 18px;
+    background:rgba(36,40,44,0.55);
+    backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,0.06);
+    position:relative;
+  }
+  .category-band{
+    position:absolute;
+    inset:0;
+    border-radius:14px;
+    opacity:0.16;
+    pointer-events:none;
+  }
+  .category-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+    position:relative;
+  }
+  .cat-dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 0 3px rgba(255,255,255,0.06);}
+  .category-head h2{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    font-weight:500;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text);
+    margin:0;
+    flex:1;
+  }
+  .cat-count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);}
+  .cat-edit-btn{
+    opacity:0;
+    background:none;border:none;color:var(--text-dim);cursor:pointer;
+    padding:2px;display:flex;align-items:center;
+    transition:opacity .15s ease, color .15s ease;
+  }
+  .category:hover .cat-edit-btn{opacity:1;}
+  .cat-edit-btn:hover{color:var(--accent);}
+  .cat-edit-btn svg{width:14px;height:14px;}
+
+  .tile-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    position:relative;
+    min-height:80px;
+  }
+
+  .tile{
+    width:80px;height:80px;
+    border-radius:12px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    position:relative;
+    cursor:grab;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+    color:var(--text);
+    padding:8px 6px 6px;
+    transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    user-select:none;
+  }
+  .tile:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 6px 18px rgba(0,0,0,0.35);}
+  .tile.dragging{opacity:0.35;}
+  .tile.drag-over{border-color:var(--accent-2);}
+  .tile-hole{
+    position:absolute;
+    top:6px;left:50%;
+    transform:translateX(-50%);
+    width:7px;height:7px;
+    border-radius:50%;
+    background:rgba(0,0,0,0.35);
+    box-shadow:inset 0 1px 2px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .tile-icon{
+    width:26px;height:26px;
+    border-radius:6px;
+    margin-top:6px;
+    margin-bottom:6px;
+    object-fit:cover;
+    background:var(--bg);
+  }
+  .tile-fallback{
+    width:26px;height:26px;
+    border-radius:6px;
+    margin-top:6px;
+    margin-bottom:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;font-weight:600;
+    background:var(--accent);
+    color:#1b1e21;
+  }
+  .tile-label{
+    font-size:10.5px;
+    line-height:1.2;
+    text-align:center;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:var(--text-dim);
+  }
+  .tile-actions{
+    position:absolute;
+    top:-8px;right:-8px;
+    display:flex;
+    gap:4px;
+    opacity:0;
+    transition:opacity .12s ease;
+  }
+  .tile:hover .tile-actions{opacity:1;}
+  .tile-actions button{
+    width:20px;height:20px;
+    border-radius:50%;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--text-dim);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    font-size:11px;
+    padding:0;
+  }
+  .tile-actions button:hover{color:var(--text);border-color:var(--accent);}
+  .tile-actions svg{width:11px;height:11px;}
+
+  .tile-add{
+    width:80px;height:80px;
+    border-radius:12px;
+    border:1.5px dashed var(--border);
+    background:transparent;
+    color:var(--text-dim);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    font-size:22px;
+    transition:all .15s ease;
+    flex:none;
+  }
+  .tile-add:hover{border-color:var(--accent);color:var(--accent);}
+
+  #add-category-btn{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1.5px dashed rgba(255,255,255,0.14);
+    background:rgba(36,40,44,0.35);
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  #add-category-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* Modal */
+  .modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.55);
+    backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  .modal-overlay[hidden]{display:none;}
+  .modal{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:22px;
+    width:100%;
+    max-width:360px;
+    max-height:86vh;
+    overflow-y:auto;
+  }
+  .modal h3{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin:0 0 16px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:11.5px;
+    color:var(--text-dim);
+    margin-bottom:6px;
+    font-family:'IBM Plex Mono',monospace;
+    letter-spacing:0.04em;
+  }
+  .field input[type=text], .field input[type=url]{
+    width:100%;
+    padding:9px 10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+  .field input[type=text]:focus, .field input[type=url]:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  .field select{
+    width:100%;
+    padding:9px 10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+  .color-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
+  .color-swatch{
+    width:26px;height:26px;
+    border-radius:50%;
+    cursor:pointer;
+    border:2px solid transparent;
+  }
+  .color-swatch.selected{border-color:#fff;}
+  .field input[type=color]{
+    width:44px;height:30px;
+    border:none;background:none;cursor:pointer;padding:0;
+  }
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .btn{
+    flex:1;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--panel-2);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:500;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .btn:hover{border-color:var(--accent);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#1b1e21;font-weight:600;}
+  .btn.primary:hover{filter:brightness(1.08);}
+  .btn.danger{color:var(--danger);}
+  .btn.danger:hover{border-color:var(--danger);}
+
+  .wallpaper-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;}
+  .wp-swatch{
+    width:56px;height:40px;
+    border-radius:8px;
+    cursor:pointer;
+    border:2px solid transparent;
+    background-size:cover;
+    background-position:center;
+  }
+  .wp-swatch.selected{border-color:var(--accent);}
+  .field-hint{font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.4;}
+  .cat-list-item{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .cat-list-item:last-child{border-bottom:none;}
+  .cat-list-item input[type=text]{flex:1;}
+  .cat-list-item .del{
+    background:none;border:none;color:var(--text-dim);cursor:pointer;
+    display:flex;align-items:center;padding:4px;
+  }
+  .cat-list-item .del:hover{color:var(--danger);}
+  .cat-list-item .del svg{width:15px;height:15px;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <h1>Panneau de bord</h1>
+    <div id="clock"></div>
+    <div class="actions">
+      <button class="icon-btn" id="wallpaper-btn" title="Fond d'écran">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </button>
+      <button class="icon-btn" id="categories-btn" title="Gérer les catégories">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="categories-container"></div>
+
+  <button id="add-category-btn">+ Nouvelle catégorie</button>
+</div>
+
+<!-- Modal: add/edit tile -->
+<div class="modal-overlay" id="tile-modal-overlay" hidden>
+  <div class="modal">
+    <h3 id="tile-modal-title">Nouvelle tuile</h3>
+    <div class="field">
+      <label>Nom</label>
+      <input type="text" id="tile-name" placeholder="Ex. Gmail">
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input type="url" id="tile-url" placeholder="https://...">
+    </div>
+    <div class="field">
+      <label>Catégorie</label>
+      <select id="tile-category"></select>
+    </div>
+    <div class="field">
+      <label>Icône</label>
+      <div id="tile-icon-preview-row" style="display:flex;align-items:center;gap:12px;">
+        <div id="tile-icon-preview" style="width:40px;height:40px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none;border:1px solid var(--border);"></div>
+        <input type="file" id="tile-icon-input" accept="image/*" style="flex:1;font-size:12px;">
+      </div>
+      <div class="field-hint" id="tile-icon-hint">Sans image, l'icône du site (favicon) est utilisée automatiquement.</div>
+      <button type="button" class="btn" id="tile-icon-clear" style="margin-top:8px;display:none;">Revenir au favicon</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="tile-cancel">Annuler</button>
+      <button class="btn danger" id="tile-delete" style="display:none;">Supprimer</button>
+      <button class="btn primary" id="tile-save">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: wallpaper -->
+<div class="modal-overlay" id="wallpaper-modal-overlay" hidden>
+  <div class="modal">
+    <h3>Fond d'écran</h3>
+    <div class="field">
+      <label>Dégradés</label>
+      <div class="wallpaper-grid" id="gradient-swatches"></div>
+    </div>
+    <div class="field">
+      <label>Couleur unie</label>
+      <input type="color" id="wp-color-input" value="#1b1e21">
+    </div>
+    <div class="field">
+      <label>Image personnalisée</label>
+      <input type="file" id="wp-file-input" accept="image/*">
+      <div class="field-hint">L'image est stockée localement dans votre navigateur. Préférez un fichier léger (moins de 2 Mo).</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="wp-close">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: categories manager -->
+<div class="modal-overlay" id="categories-modal-overlay" hidden>
+  <div class="modal">
+    <h3>Catégories</h3>
+    <div id="cat-list"></div>
+    <button class="btn" id="cat-add-new" style="margin-top:12px;width:100%;">+ Ajouter une catégorie</button>
+    <div class="modal-actions">
+      <button class="btn primary" id="cat-close" style="flex:none;width:100%;">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "dashboard-tuiles-data-v1";
+  var PALETTE = ["#e8a33d","#4fa8a0","#d9634d","#7c9fd9","#c78fd9","#8fbf6e","#d9b04f","#5cb8c4"];
+  var GRADIENTS = [
+    "linear-gradient(135deg,#1b1e21,#2e3338)",
+    "linear-gradient(135deg,#243b3a,#12181a)",
+    "linear-gradient(135deg,#2e2440,#151018)",
+    "linear-gradient(135deg,#3a2a1e,#161311)",
+    "linear-gradient(135deg,#1e2a3a,#0f1418)",
+    "linear-gradient(135deg,#2a1e2e,#12101a)"
+  ];
+
+  var data = load();
+
+  function load(){
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      try{ return JSON.parse(raw); }catch(e){}
+    }
+    var defaultCatId = uid();
+    return {
+      wallpaper:{type:"gradient", value:GRADIENTS[0]},
+      categories:[{id:defaultCatId, name:"Sans catégorie", color:"#7c9fd9"}],
+      tiles:[]
+    };
+  }
+  function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+  function uid(){ return Math.random().toString(36).slice(2,10); }
+
+  function applyWallpaper(){
+    var wp = data.wallpaper;
+    if(wp.type === "image"){
+      document.body.style.background = "url(" + wp.value + ") center/cover fixed";
+    } else {
+      document.body.style.background = wp.value;
+      document.body.style.backgroundAttachment = "fixed";
+    }
+  }
+
+  // ---------- Clock ----------
+  function tickClock(){
+    var now = new Date();
+    var h = String(now.getHours()).padStart(2,"0");
+    var m = String(now.getMinutes()).padStart(2,"0");
+    var days = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+    var months = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+    var dateStr = days[now.getDay()] + " " + now.getDate() + " " + months[now.getMonth()];
+    document.getElementById("clock").innerHTML = h+":"+m+"<span>"+dateStr+"</span>";
+  }
+  tickClock();
+  setInterval(tickClock, 10000);
+
+  // ---------- Rendering ----------
+  var container = document.getElementById("categories-container");
+
+  function faviconUrl(url){
+    try{
+      var u = new URL(url);
+      return "https://www.google.com/s2/favicons?sz=64&domain=" + u.hostname;
+    }catch(e){ return null; }
+  }
+
+  function render(){
+    container.innerHTML = "";
+    data.categories.forEach(function(cat){
+      var tiles = data.tiles.filter(function(t){ return t.categoryId === cat.id; });
+
+      var catEl = document.createElement("div");
+      catEl.className = "category";
+      catEl.dataset.catId = cat.id;
+
+      var band = document.createElement("div");
+      band.className = "category-band";
+      band.style.background = cat.color;
+      catEl.appendChild(band);
+
+      var head = document.createElement("div");
+      head.className = "category-head";
+      head.innerHTML =
+        '<span class="cat-dot" style="background:'+cat.color+'"></span>' +
+        '<h2>'+escapeHtml(cat.name)+'</h2>' +
+        '<span class="cat-count">'+tiles.length+'</span>' +
+        '<button class="cat-edit-btn" data-cat="'+cat.id+'" title="Modifier la catégorie">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>' +
+        '</button>';
+      catEl.appendChild(head);
+
+      head.querySelector(".cat-edit-btn").addEventListener("click", function(){
+        openCategoriesModal(cat.id);
+      });
+
+      var grid = document.createElement("div");
+      grid.className = "tile-grid";
+      grid.dataset.catId = cat.id;
+
+      tiles.forEach(function(tile){
+        grid.appendChild(buildTileEl(tile));
+      });
+
+      var addBtn = document.createElement("button");
+      addBtn.className = "tile-add";
+      addBtn.title = "Ajouter une tuile";
+      addBtn.textContent = "+";
+      addBtn.addEventListener("click", function(){ openTileModal(null, cat.id); });
+      grid.appendChild(addBtn);
+
+      setupDropZone(grid);
+
+      catEl.appendChild(grid);
+      container.appendChild(catEl);
+    });
+  }
+
+  function escapeHtml(s){
+    var d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function buildTileEl(tile){
+    var a = document.createElement("a");
+    a.className = "tile";
+    a.href = tile.url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.draggable = true;
+    a.dataset.tileId = tile.id;
+
+    var hole = document.createElement("div");
+    hole.className = "tile-hole";
+    a.appendChild(hole);
+
+    var iconSrc = tile.icon || faviconUrl(tile.url);
+    if(iconSrc){
+      var img = document.createElement("img");
+      img.className = "tile-icon";
+      img.src = iconSrc;
+      img.alt = "";
+      img.onerror = function(){
+        img.replaceWith(fallbackIcon(tile.name));
+      };
+      a.appendChild(img);
+    } else {
+      a.appendChild(fallbackIcon(tile.name));
+    }
+
+    var label = document.createElement("div");
+    label.className = "tile-label";
+    label.textContent = tile.name;
+    a.appendChild(label);
+
+    var actions = document.createElement("div");
+    actions.className = "tile-actions";
+    var editBtn = document.createElement("button");
+    editBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>';
+    editBtn.title = "Modifier";
+    editBtn.addEventListener("click", function(ev){
+      ev.preventDefault(); ev.stopPropagation();
+      openTileModal(tile.id, tile.categoryId);
+    });
+    actions.appendChild(editBtn);
+    a.appendChild(actions);
+
+    // drag vs click detection
+    var dragStarted = false;
+    a.addEventListener("dragstart", function(ev){
+      dragStarted = true;
+      a.classList.add("dragging");
+      ev.dataTransfer.setData("text/plain", tile.id);
+      ev.dataTransfer.effectAllowed = "move";
+    });
+    a.addEventListener("dragend", function(){
+      a.classList.remove("dragging");
+      setTimeout(function(){ dragStarted = false; }, 0);
+    });
+    a.addEventListener("click", function(ev){
+      if(dragStarted){ ev.preventDefault(); }
+    });
+
+    return a;
+  }
+
+  function fallbackIcon(name){
+    var div = document.createElement("div");
+    div.className = "tile-fallback";
+    div.textContent = (name||"?").trim().charAt(0).toUpperCase();
+    return div;
+  }
+
+  function setupDropZone(grid){
+    grid.addEventListener("dragover", function(ev){
+      ev.preventDefault();
+      var afterEl = getDragAfterElement(grid, ev.clientX, ev.clientY);
+      var dragging = document.querySelector(".tile.dragging");
+      if(!dragging) return;
+      if(afterEl == null){
+        grid.insertBefore(dragging, grid.querySelector(".tile-add"));
+      } else {
+        grid.insertBefore(dragging, afterEl);
+      }
+    });
+    grid.addEventListener("drop", function(ev){
+      ev.preventDefault();
+      var tileId = ev.dataTransfer.getData("text/plain");
+      var newCatId = grid.dataset.catId;
+      commitOrderFromDOM(newCatId);
+      var tile = data.tiles.find(function(t){ return t.id === tileId; });
+      if(tile) tile.categoryId = newCatId;
+      save();
+      render();
+    });
+  }
+
+  function getDragAfterElement(grid, x, y){
+    var els = Array.prototype.slice.call(grid.querySelectorAll(".tile:not(.dragging)"));
+    var closest = {offset: Number.NEGATIVE_INFINITY, element: null};
+    els.forEach(function(child){
+      var box = child.getBoundingClientRect();
+      var offsetY = y - box.top - box.height/2;
+      var offsetX = x - box.left - box.width/2;
+      var offset = -Math.hypot(offsetX, offsetY);
+      if(y >= box.top && y <= box.bottom){
+        var horizOffset = x - box.left - box.width/2;
+        if(horizOffset < 0 && horizOffset > closest.offset){
+          closest = {offset:horizOffset, element:child};
+        }
+      }
+    });
+    return closest.element;
+  }
+
+  function commitOrderFromDOM(catId){
+    var grid = container.querySelector('.tile-grid[data-cat-id="'+catId+'"]');
+    if(!grid) return;
+    var orderedIds = Array.prototype.slice.call(grid.querySelectorAll(".tile")).map(function(el){ return el.dataset.tileId; });
+    var others = data.tiles.filter(function(t){ return t.categoryId !== catId; });
+    var thisCatTiles = orderedIds.map(function(id){ return data.tiles.find(function(t){ return t.id === id; }); }).filter(Boolean);
+    data.tiles = others.concat(thisCatTiles);
+  }
+
+  // ---------- Tile modal ----------
+  var tileModalOverlay = document.getElementById("tile-modal-overlay");
+  var tileNameInput = document.getElementById("tile-name");
+  var tileUrlInput = document.getElementById("tile-url");
+  var tileCategorySelect = document.getElementById("tile-category");
+  var tileModalTitle = document.getElementById("tile-modal-title");
+  var tileDeleteBtn = document.getElementById("tile-delete");
+  var editingTileId = null;
+
+  function openTileModal(tileId, presetCatId){
+    editingTileId = tileId;
+    tileCategorySelect.innerHTML = "";
+    data.categories.forEach(function(c){
+      var opt = document.createElement("option");
+      opt.value = c.id; opt.textContent = c.name;
+      tileCategorySelect.appendChild(opt);
+    });
+
+    if(tileId){
+      var tile = data.tiles.find(function(t){ return t.id === tileId; });
+      tileModalTitle.textContent = "Modifier la tuile";
+      tileNameInput.value = tile.name;
+      tileUrlInput.value = tile.url;
+      tileCategorySelect.value = tile.categoryId;
+      tileDeleteBtn.style.display = "block";
+    } else {
+      tileModalTitle.textContent = "Nouvelle tuile";
+      tileNameInput.value = "";
+      tileUrlInput.value = "";
+      tileCategorySelect.value = presetCatId || data.categories[0].id;
+      tileDeleteBtn.style.display = "none";
+    }
+    tileModalOverlay.hidden = false;
+    tileNameInput.focus();
+  }
+  function closeTileModal(){ tileModalOverlay.hidden = true; editingTileId = null; }
+
+  document.getElementById("tile-cancel").addEventListener("click", closeTileModal);
+  tileModalOverlay.addEventListener("click", function(ev){ if(ev.target === tileModalOverlay) closeTileModal(); });
+
+  document.getElementById("tile-save").addEventListener("click", function(){
+    var name = tileNameInput.value.trim();
+    var url = tileUrlInput.value.trim();
+    if(!name || !url){ return; }
+    if(!/^https?:\/\//i.test(url)){ url = "https://" + url; }
+    var catId = tileCategorySelect.value;
+
+    if(editingTileId){
+      var tile = data.tiles.find(function(t){ return t.id === editingTileId; });
+      tile.name = name; tile.url = url; tile.categoryId = catId;
+    } else {
+      data.tiles.push({id:uid(), name:name, url:url, categoryId:catId});
+    }
+    save();
+    closeTileModal();
+    render();
+  });
+
+  tileDeleteBtn.addEventListener("click", function(){
+    if(!editingTileId) return;
+    data.tiles = data.tiles.filter(function(t){ return t.id !== editingTileId; });
+    save();
+    closeTileModal();
+    render();
+  });
+
+  // ---------- Wallpaper modal ----------
+  var wpOverlay = document.getElementById("wallpaper-modal-overlay");
+  var gradientContainer = document.getElementById("gradient-swatches");
+
+  function renderGradientSwatches(){
+    gradientContainer.innerHTML = "";
+    GRADIENTS.forEach(function(g){
+      var sw = document.createElement("div");
+      sw.className = "wp-swatch";
+      sw.style.background = g;
+      if(data.wallpaper.type === "gradient" && data.wallpaper.value === g) sw.classList.add("selected");
+      sw.addEventListener("click", function(){
+        data.wallpaper = {type:"gradient", value:g};
+        save(); applyWallpaper(); renderGradientSwatches();
+      });
+      gradientContainer.appendChild(sw);
+    });
+  }
+
+  document.getElementById("wallpaper-btn").addEventListener("click", function(){
+    renderGradientSwatches();
+    wpOverlay.hidden = false;
+  });
+  document.getElementById("wp-close").addEventListener("click", function(){ wpOverlay.hidden = true; });
+  wpOverlay.addEventListener("click", function(ev){ if(ev.target === wpOverlay) wpOverlay.hidden = true; });
+
+  document.getElementById("wp-color-input").addEventListener("input", function(ev){
+    data.wallpaper = {type:"color", value:ev.target.value};
+    save(); applyWallpaper();
+  });
+
+  document.getElementById("wp-file-input").addEventListener("change", function(ev){
+    var file = ev.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        data.wallpaper = {type:"image", value:e.target.result};
+        save(); applyWallpaper();
+      }catch(err){
+        alert("Image trop volumineuse pour être enregistrée localement. Essayez un fichier plus léger.");
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ---------- Categories modal ----------
+  var catOverlay = document.getElementById("categories-modal-overlay");
+  var catListEl = document.getElementById("cat-list");
+
+  function renderCatList(){
+    catListEl.innerHTML = "";
+    data.categories.forEach(function(cat){
+      var row = document.createElement("div");
+      row.className = "cat-list-item";
+
+      var nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.value = cat.name;
+      nameInput.addEventListener("input", function(){
+        cat.name = nameInput.value;
+        save(); render();
+      });
+      row.appendChild(nameInput);
+
+      var colorRow = document.createElement("div");
+      colorRow.className = "color-row";
+      PALETTE.forEach(function(c){
+        var sw = document.createElement("div");
+        sw.className = "color-swatch";
+        sw.style.background = c;
+        if(cat.color === c) sw.classList.add("selected");
+        sw.addEventListener("click", function(){
+          cat.color = c;
+          save(); render(); renderCatList();
+        });
+        colorRow.appendChild(sw);
+      });
+      row.appendChild(colorRow);
+
+      if(data.categories.length > 1){
+        var delBtn = document.createElement("button");
+        delBtn.className = "del";
+        delBtn.title = "Supprimer la catégorie";
+        delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>';
+        delBtn.addEventListener("click", function(){
+          var fallback = data.categories.find(function(c){ return c.id !== cat.id; });
+          data.tiles.forEach(function(t){ if(t.categoryId === cat.id) t.categoryId = fallback.id; });
+          data.categories = data.categories.filter(function(c){ return c.id !== cat.id; });
+          save(); render(); renderCatList();
+        });
+        row.appendChild(delBtn);
+      }
+
+      catListEl.appendChild(row);
+    });
+  }
+
+  function openCategoriesModal(focusCatId){
+    renderCatList();
+    catOverlay.hidden = false;
+  }
+
+  document.getElementById("categories-btn").addEventListener("click", function(){ openCategoriesModal(); });
+  document.getElementById("cat-close").addEventListener("click", function(){ catOverlay.hidden = true; });
+  catOverlay.addEventListener("click", function(ev){ if(ev.target === catOverlay) catOverlay.hidden = true; });
+
+  document.getElementById("cat-add-new").addEventListener("click", function(){
+    var color = PALETTE[data.categories.length % PALETTE.length];
+    data.categories.push({id:uid(), name:"Nouvelle catégorie", color:color});
+    save(); render(); renderCatList();
+  });
+
+  // ---------- Init ----------
+  applyWallpaper();
+  render();
+})();
+</script>
+</body>
+</html>
