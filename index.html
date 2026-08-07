@@ -371,7 +371,27 @@
     font-family:'Inter',sans-serif;
     font-size:13px;
   }
-  .color-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
+  .color-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:4px;}
+  .color-wheel-btn{
+    position:relative;
+    width:26px;height:26px;
+    border-radius:50%;
+    background:conic-gradient(from 0deg, red, yellow, lime, cyan, blue, magenta, red);
+    cursor:pointer;
+    display:inline-block;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25);
+    flex:none;
+  }
+  .color-wheel-btn input[type=color]{
+    position:absolute;
+    inset:-4px;
+    width:calc(100% + 8px);
+    height:calc(100% + 8px);
+    opacity:0;
+    cursor:pointer;
+    border:none;
+    padding:0;
+  }
   .color-swatch{
     width:26px;height:26px;
     border-radius:50%;
@@ -1132,6 +1152,21 @@
         });
         colorRow.appendChild(sw);
       });
+
+      var wheelBtn = document.createElement("label");
+      wheelBtn.className = "color-wheel-btn";
+      wheelBtn.title = "Choisir une couleur personnalisée";
+      var colorInput = document.createElement("input");
+      colorInput.type = "color";
+      colorInput.value = /^#[0-9a-f]{6}$/i.test(cat.color) ? cat.color : "#e8a33d";
+      colorInput.addEventListener("input", function(){
+        cat.color = colorInput.value;
+        save(); render();
+        colorRow.querySelectorAll(".color-swatch.selected").forEach(function(s){ s.classList.remove("selected"); });
+      });
+      wheelBtn.appendChild(colorInput);
+      colorRow.appendChild(wheelBtn);
+
       row.appendChild(colorRow);
 
       if(data.categories.length > 1){
