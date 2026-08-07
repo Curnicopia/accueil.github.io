@@ -135,6 +135,13 @@
     opacity:0.16;
     pointer-events:none;
   }
+  .category-relief{
+    position:absolute;
+    inset:0;
+    border-radius:14px;
+    pointer-events:none;
+    background:linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 35%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.16) 100%);
+  }
   .category-head{
     display:flex;
     align-items:center;
@@ -187,6 +194,7 @@
 
   .tile{
     width:80px;height:80px;
+    flex:0 0 80px;
     border-radius:12px;
     background:var(--panel-2);
     border:1px solid var(--border);
@@ -282,20 +290,6 @@
   }
   .tile-actions button:hover{color:var(--text);border-color:var(--accent);}
   .tile-actions svg{width:11px;height:11px;}
-
-  .tile-add{
-    width:80px;height:80px;
-    border-radius:12px;
-    border:1.5px dashed var(--border);
-    background:transparent;
-    color:var(--text-dim);
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;
-    font-size:22px;
-    transition:all .15s ease;
-    flex:none;
-  }
-  .tile-add:hover{border-color:var(--accent);color:var(--accent);}
 
   #add-category-btn{
     width:100%;
@@ -531,6 +525,7 @@
     <h3>Catégories</h3>
     <div id="cat-list"></div>
     <button class="btn" id="cat-add-new" style="margin-top:12px;width:100%;">+ Ajouter une catégorie</button>
+    <button class="btn" id="cat-realign" style="margin-top:8px;width:100%;">Réaligner l'espacement</button>
     <div class="modal-actions">
       <button class="btn primary" id="cat-close" style="flex:none;width:100%;">Fermer</button>
     </div>
@@ -646,6 +641,10 @@
       band.style.background = cat.color;
       innerEl.appendChild(band);
 
+      var relief = document.createElement("div");
+      relief.className = "category-relief";
+      innerEl.appendChild(relief);
+
       var head = document.createElement("div");
       head.className = "category-head";
       head.innerHTML =
@@ -655,12 +654,18 @@
         '<span class="cat-dot" style="background:'+cat.color+'"></span>' +
         '<h2>'+escapeHtml(cat.name)+'</h2>' +
         '<span class="cat-count">'+tiles.length+'</span>' +
+        '<button class="cat-edit-btn tile-add-mini" data-cat="'+cat.id+'" title="Ajouter une tuile">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>' +
+        '</button>' +
         '<button class="cat-edit-btn" data-cat="'+cat.id+'" title="Modifier la catégorie">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>' +
         '</button>';
       innerEl.appendChild(head);
 
-      head.querySelector(".cat-edit-btn").addEventListener("click", function(){
+      head.querySelector(".tile-add-mini").addEventListener("click", function(){
+        openTileModal(null, cat.id);
+      });
+      head.querySelector(".cat-edit-btn:not(.tile-add-mini)").addEventListener("click", function(){
         openCategoriesModal(cat.id);
       });
 
@@ -679,13 +684,6 @@
       tiles.forEach(function(tile){
         grid.appendChild(buildTileEl(tile));
       });
-
-      var addBtn = document.createElement("button");
-      addBtn.className = "tile-add";
-      addBtn.title = "Ajouter une tuile";
-      addBtn.textContent = "+";
-      addBtn.addEventListener("click", function(){ openTileModal(null, cat.id); });
-      grid.appendChild(addBtn);
 
       innerEl.appendChild(grid);
       catEl.appendChild(innerEl);
@@ -1201,9 +1199,35 @@
     renderCatList();
   });
 
+  document.getElementById("cat-realign").addEventListener("click", function(){
+    realignCategorySpacing();
+  });
+
   document.getElementById("add-category-btn").addEventListener("click", function(){
     addCategory();
   });
+
+  // Stacks every category back at column 0, one below another, using each
+  // category's actual rendered height plus a fixed 20px gap — this fixes
+  // spacing that came out uneven after older data was migrated to the
+  // freeform layout using an estimated (not measured) height per category.
+  function realignCategorySpacing(){
+    var order = Array.prototype.slice.call(container.querySelectorAll(".category"))
+      .sort(function(a, b){ return (parseFloat(a.style.top)||0) - (parseFloat(b.style.top)||0); })
+      .map(function(el){ return el.dataset.catId; });
+
+    var runningTop = 0;
+    order.forEach(function(catId){
+      var cat = data.categories.find(function(c){ return c.id === catId; });
+      var el = container.querySelector('.category[data-cat-id="'+catId+'"]');
+      if(!cat || !el) return;
+      cat.col = 0;
+      cat.top = runningTop;
+      runningTop += el.offsetHeight + 20;
+    });
+    save();
+    render();
+  }
 
   function addCategory(){
     var color = PALETTE[data.categories.length % PALETTE.length];
