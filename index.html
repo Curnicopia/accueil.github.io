@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panneau de bord</title>
+<title>Accueil</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -83,20 +83,30 @@
   header .actions{display:flex;gap:8px;}
 
   #categories-container{
-    display:grid;
-    grid-template-columns:repeat(12, minmax(0,1fr));
-    gap:20px;
+    position:relative;
   }
   .category{
-    grid-column:span 12;
-    margin-bottom:0;
+    position:absolute;
+    box-sizing:border-box;
+    min-width:0;
+  }
+  .category.cat-moving{
+    z-index:30;
+    cursor:grabbing;
+  }
+  .category.cat-moving .category-inner{
+    box-shadow:0 16px 36px rgba(0,0,0,0.5);
+    border-color:var(--accent);
+  }
+  .category-inner{
+    margin:10px;
     border-radius:14px;
     padding:16px 16px 18px;
     background:rgba(36,40,44,0.55);
     backdrop-filter:blur(8px);
     border:1px solid rgba(255,255,255,0.06);
     position:relative;
-    min-width:0;
+    transition:box-shadow .15s ease, border-color .15s ease;
   }
   .cat-resize-handle{
     position:absolute;
@@ -145,7 +155,7 @@
   .category:hover .cat-drag-handle{opacity:1;}
   .cat-drag-handle:hover{color:var(--accent);}
   .cat-drag-handle svg{width:14px;height:14px;}
-  .category.cat-dragging{opacity:0.4;}
+  .category.cat-moving{opacity:0.96;}
   .category-head h2{
     font-family:'IBM Plex Mono',monospace;
     font-size:13px;
@@ -198,6 +208,15 @@
     border-color:var(--accent-2);
     box-shadow:0 0 0 3px rgba(79,168,160,0.35);
     transform:scale(0.93);
+  }
+  .tile-ghost{
+    border-radius:12px;
+    opacity:0.92;
+    box-shadow:0 14px 34px rgba(0,0,0,0.55);
+    transform:scale(1.05);
+    pointer-events:none;
+    cursor:grabbing;
+    z-index:999;
   }
   .tile-icon{
     width:26px;height:26px;
@@ -519,6 +538,7 @@
   ];
 
   var data = load();
+  migrateCategoryLayout();
 
   function load(){
     var raw = localStorage.getItem(STORAGE_KEY);
@@ -528,12 +548,27 @@
     var defaultCatId = uid();
     return {
       wallpaper:{type:"gradient", value:GRADIENTS[0]},
-      categories:[{id:defaultCatId, name:"Sans catégorie", color:"#7c9fd9", colSpan:12}],
+      categories:[{id:defaultCatId, name:"Sans catégorie", color:"#7c9fd9", colSpan:12, col:0, top:0}],
       tiles:[]
     };
   }
   function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
   function uid(){ return Math.random().toString(36).slice(2,10); }
+
+  // Older saved layouts only had colSpan (categories auto-flowed top to
+  // bottom). Give them an explicit col/top so they keep their previous
+  // stacking order under the new freeform positioning.
+  function migrateCategoryLayout(){
+    var runningBottom = 0;
+    var changed = false;
+    data.categories.forEach(function(cat){
+      if(cat.colSpan == null){ cat.colSpan = 12; changed = true; }
+      if(cat.col == null){ cat.col = 0; changed = true; }
+      if(cat.top == null){ cat.top = runningBottom; changed = true; }
+      runningBottom = Math.max(runningBottom, cat.top) + 240;
+    });
+    if(changed) save();
+  }
 
   function applyWallpaper(){
     var wp = data.wallpaper;
@@ -544,6 +579,14 @@
       document.body.style.backgroundAttachment = "fixed";
     }
   }
+
+  // If a drag (category move/resize or tile move/swap) is in progress and the
+  // window loses focus (alt-tab, devtools, etc.), this guarantees it always
+  // gets cleanly cancelled instead of leaving the UI in a stuck state.
+  var activeDragCleanup = null;
+  window.addEventListener("blur", function(){
+    if(activeDragCleanup){ activeDragCleanup(); }
+  });
 
   // ---------- Clock ----------
   function tickClock(){
@@ -576,12 +619,17 @@
       var catEl = document.createElement("div");
       catEl.className = "category";
       catEl.dataset.catId = cat.id;
-      catEl.style.gridColumn = "span " + (cat.colSpan || 12);
+      catEl.style.left = ((cat.col || 0) / 12 * 100) + "%";
+      catEl.style.width = ((cat.colSpan || 12) / 12 * 100) + "%";
+      catEl.style.top = (cat.top || 0) + "px";
+
+      var innerEl = document.createElement("div");
+      innerEl.className = "category-inner";
 
       var band = document.createElement("div");
       band.className = "category-band";
       band.style.background = cat.color;
-      catEl.appendChild(band);
+      innerEl.appendChild(band);
 
       var head = document.createElement("div");
       head.className = "category-head";
@@ -595,19 +643,19 @@
         '<button class="cat-edit-btn" data-cat="'+cat.id+'" title="Modifier la catégorie">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>' +
         '</button>';
-      catEl.appendChild(head);
+      innerEl.appendChild(head);
 
       head.querySelector(".cat-edit-btn").addEventListener("click", function(){
         openCategoriesModal(cat.id);
       });
 
-      setupCategoryDrag(catEl);
+      setupCategoryDragMove(catEl, head.querySelector(".cat-drag-handle"), cat);
 
       var resizeHandle = document.createElement("div");
       resizeHandle.className = "cat-resize-handle";
       resizeHandle.title = "Redimensionner la catégorie";
       setupCategoryResize(resizeHandle, catEl, cat);
-      catEl.appendChild(resizeHandle);
+      innerEl.appendChild(resizeHandle);
 
       var grid = document.createElement("div");
       grid.className = "tile-grid";
@@ -624,11 +672,29 @@
       addBtn.addEventListener("click", function(){ openTileModal(null, cat.id); });
       grid.appendChild(addBtn);
 
-      setupDropZone(grid);
-
-      catEl.appendChild(grid);
+      innerEl.appendChild(grid);
+      catEl.appendChild(innerEl);
       container.appendChild(catEl);
     });
+    layoutContainerHeight();
+  }
+
+  function layoutContainerHeight(){
+    var maxBottom = 0;
+    Array.prototype.forEach.call(container.querySelectorAll(".category"), function(el){
+      var top = parseFloat(el.style.top) || 0;
+      maxBottom = Math.max(maxBottom, top + el.offsetHeight);
+    });
+    container.style.height = (maxBottom + 4) + "px";
+  }
+
+  function nextCategoryTop(){
+    var maxBottom = 0;
+    Array.prototype.forEach.call(container.querySelectorAll(".category"), function(el){
+      var top = parseFloat(el.style.top) || 0;
+      maxBottom = Math.max(maxBottom, top + el.offsetHeight);
+    });
+    return maxBottom + 20;
   }
 
   function escapeHtml(s){
@@ -637,113 +703,82 @@
     return d.innerHTML;
   }
 
-  function setupCategoryDrag(catEl){
-    catEl.addEventListener("dragstart", function(ev){
-      if(!catEl.classList.contains("drag-armed")){ ev.preventDefault(); return; }
-      catEl.classList.add("cat-dragging");
-      ev.dataTransfer.setData("text/category", catEl.dataset.catId);
-      ev.dataTransfer.effectAllowed = "move";
-    });
-    catEl.addEventListener("dragend", function(){
-      catEl.classList.remove("cat-dragging", "drag-armed");
-      catEl.draggable = false;
-    });
-  }
+  function setupCategoryDragMove(catEl, handle, cat){
+    handle.addEventListener("mousedown", function(ev){
+      if(ev.button !== 0) return;
+      ev.preventDefault();
+      if(activeDragCleanup){ activeDragCleanup(); }
 
-  // Delegated: only allow drag to start from the grip handle
-  container.addEventListener("mousedown", function(ev){
-    var handle = ev.target.closest(".cat-drag-handle");
-    if(!handle) return;
-    var catEl = handle.closest(".category");
-    if(!catEl) return;
-    catEl.draggable = true;
-    catEl.classList.add("drag-armed");
-  });
-  container.addEventListener("mouseup", function(){
-    var armed = container.querySelectorAll(".drag-armed");
-    armed.forEach(function(el){ el.classList.remove("drag-armed"); el.draggable = false; });
-  });
+      var containerRect = container.getBoundingClientRect();
+      var colWidthPx = containerRect.width / 12;
+      var startMouseX = ev.clientX, startMouseY = ev.clientY;
+      var startLeft = catEl.offsetLeft, startTop = catEl.offsetTop;
+      var maxLeft = Math.max(0, container.clientWidth - catEl.offsetWidth);
+      var pendingLeft = startLeft, pendingTop = startTop;
+      catEl.classList.add("cat-moving");
 
-  // Safety nets: guarantee no drag operation can leave the UI in a stuck
-  // half-transparent / highlighted state, even if a drop lands somewhere
-  // unexpected (outside a grid, on a header, etc.).
-  document.addEventListener("dragover", function(ev){ ev.preventDefault(); });
-  document.addEventListener("drop", function(ev){ ev.preventDefault(); });
-  document.addEventListener("dragend", function(){
-    document.querySelectorAll(".tile.dragging").forEach(function(el){ el.classList.remove("dragging"); });
-    document.querySelectorAll(".tile.tile-swap-target").forEach(function(el){ el.classList.remove("tile-swap-target"); });
-    document.querySelectorAll(".category.cat-dragging").forEach(function(el){ el.classList.remove("cat-dragging"); });
-  });
-
-  function getCategoryDragTarget(x, y){
-    var els = Array.prototype.slice.call(container.querySelectorAll(".category:not(.cat-dragging)"));
-    var closest = null;
-    var closestDist = Infinity;
-    els.forEach(function(el){
-      var box = el.getBoundingClientRect();
-      var cx = box.left + box.width/2;
-      var cy = box.top + box.height/2;
-      var dist = Math.hypot(x - cx, y - cy);
-      if(dist < closestDist){
-        closestDist = dist;
-        closest = {el:el, before: x < cx};
+      function onMove(mv){
+        pendingLeft = Math.min(Math.max(0, startLeft + (mv.clientX - startMouseX)), maxLeft);
+        pendingTop = Math.max(0, startTop + (mv.clientY - startMouseY));
+        catEl.style.left = pendingLeft + "px";
+        catEl.style.top = pendingTop + "px";
       }
+      function finish(){
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        activeDragCleanup = null;
+        catEl.classList.remove("cat-moving");
+        var newCol = Math.round(pendingLeft / colWidthPx);
+        newCol = Math.max(0, Math.min(12 - (cat.colSpan || 12), newCol));
+        cat.col = newCol;
+        cat.top = Math.max(0, Math.round(pendingTop / 20) * 20);
+        save();
+        render();
+      }
+      function onUp(){ finish(); }
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+      activeDragCleanup = finish;
     });
-    return closest;
   }
-
-  container.addEventListener("dragover", function(ev){
-    var dragging = container.querySelector(".category.cat-dragging");
-    if(!dragging) return;
-    ev.preventDefault();
-    var target = getCategoryDragTarget(ev.clientX, ev.clientY);
-    if(!target || target.el === dragging) return;
-    if(target.before){
-      container.insertBefore(dragging, target.el);
-    } else {
-      container.insertBefore(dragging, target.el.nextSibling);
-    }
-  });
-
-  container.addEventListener("drop", function(ev){
-    var dragging = container.querySelector(".category.cat-dragging");
-    if(!dragging) return;
-    ev.preventDefault();
-    var orderedIds = Array.prototype.slice.call(container.querySelectorAll(".category")).map(function(el){ return el.dataset.catId; });
-    data.categories = orderedIds.map(function(id){
-      return data.categories.find(function(c){ return c.id === id; });
-    }).filter(Boolean);
-    save();
-    render();
-  });
 
   function setupCategoryResize(handle, catEl, cat){
     handle.addEventListener("mousedown", function(ev){
+      if(ev.button !== 0) return;
       ev.preventDefault();
+      ev.stopPropagation();
+      if(activeDragCleanup){ activeDragCleanup(); }
+
       handle.classList.add("resizing");
       var containerRect = container.getBoundingClientRect();
-      var colWidth = (containerRect.width + 20) / 12; // account for gap
+      var colWidth = containerRect.width / 12;
       var startX = ev.clientX;
       var startSpan = cat.colSpan || 12;
+      var maxSpan = 12 - (cat.col || 0);
+      var pendingSpan = startSpan;
 
       function onMove(mv){
         var deltaCols = Math.round((mv.clientX - startX) / colWidth);
-        var newSpan = Math.min(12, Math.max(3, startSpan + deltaCols));
-        catEl.style.gridColumn = "span " + newSpan;
-        catEl.dataset.pendingSpan = newSpan;
+        pendingSpan = Math.min(maxSpan, Math.max(3, startSpan + deltaCols));
+        catEl.style.width = (pendingSpan / 12 * 100) + "%";
       }
-      function onUp(){
-        handle.classList.remove("resizing");
-        var finalSpan = parseInt(catEl.dataset.pendingSpan, 10) || startSpan;
-        cat.colSpan = finalSpan;
-        save();
+      function finish(){
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
+        activeDragCleanup = null;
+        handle.classList.remove("resizing");
+        cat.colSpan = pendingSpan;
+        save();
+        render();
       }
+      function onUp(){ finish(); }
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
+      activeDragCleanup = finish;
     });
   }
+
+  var DRAG_THRESHOLD = 5;
 
   function buildTileEl(tile){
     var a = document.createElement("a");
@@ -751,7 +786,6 @@
     a.href = tile.url;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
-    a.draggable = true;
     a.dataset.tileId = tile.id;
     a.title = tile.name;
 
@@ -781,6 +815,7 @@
     var editBtn = document.createElement("button");
     editBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>';
     editBtn.title = "Modifier";
+    editBtn.addEventListener("mousedown", function(ev){ ev.stopPropagation(); });
     editBtn.addEventListener("click", function(ev){
       ev.preventDefault(); ev.stopPropagation();
       openTileModal(tile.id, tile.categoryId);
@@ -788,57 +823,130 @@
     actions.appendChild(editBtn);
     a.appendChild(actions);
 
-    // drag vs click detection
-    var dragStarted = false;
-    a.addEventListener("dragstart", function(ev){
-      dragStarted = true;
-      a.classList.add("dragging");
-      ev.dataTransfer.setData("text/plain", tile.id);
-      ev.dataTransfer.effectAllowed = "move";
-    });
-    a.addEventListener("dragend", function(){
-      a.classList.remove("dragging");
-      clearSwapHighlight();
-      setTimeout(function(){ dragStarted = false; }, 0);
-    });
-    a.addEventListener("click", function(ev){
-      if(dragStarted){ ev.preventDefault(); }
+    var suppressClick = false;
+
+    a.addEventListener("mousedown", function(ev){
+      if(ev.button !== 0) return;
+      if(ev.target.closest(".tile-actions")) return;
+      if(activeDragCleanup){ activeDragCleanup(); }
+      console.log("[drag] mousedown on", tile.name, "| elementsFromPoint supported:", typeof document.elementsFromPoint === "function");
+
+      var startX = ev.clientX, startY = ev.clientY;
+      var moved = false;
+      var ghost = null;
+      var rect = a.getBoundingClientRect();
+      var grabDx = startX - rect.left;
+      var grabDy = startY - rect.top;
+
+      function resolveDropTarget(x, y){
+        var stack = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [document.elementFromPoint(x, y)];
+        for(var i=0; i<stack.length; i++){
+          var el = stack[i];
+          if(!el) continue;
+          var t = el.closest(".tile");
+          if(t && t !== a) return {tile:t, grid:t.closest(".tile-grid")};
+          var g = el.closest(".tile-grid");
+          if(g) return {tile:null, grid:g};
+        }
+        return {tile:null, grid:null};
+      }
+
+      function onMove(mv){
+        if(!moved){
+          var dx = mv.clientX - startX, dy = mv.clientY - startY;
+          if(Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+          moved = true;
+          console.log("[drag] started:", tile.name);
+          a.classList.add("dragging");
+          a.style.pointerEvents = "none";
+          ghost = a.cloneNode(true);
+          ghost.classList.add("tile-ghost");
+          ghost.style.position = "fixed";
+          ghost.style.left = rect.left + "px";
+          ghost.style.top = rect.top + "px";
+          ghost.style.width = rect.width + "px";
+          ghost.style.height = rect.height + "px";
+          ghost.style.margin = "0";
+          ghost.style.pointerEvents = "none";
+          document.body.appendChild(ghost);
+        }
+        ghost.style.left = (mv.clientX - grabDx) + "px";
+        ghost.style.top = (mv.clientY - grabDy) + "px";
+
+        var target = resolveDropTarget(mv.clientX, mv.clientY);
+        clearSwapHighlight();
+        if(target.tile && target.tile.dataset.tileId !== tile.id){
+          target.tile.classList.add("tile-swap-target");
+        }
+      }
+
+      function finish(mv){
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        activeDragCleanup = null;
+
+        if(!moved){
+          if(ghost){ ghost.remove(); }
+          return;
+        }
+        suppressClick = true;
+
+        var target = mv ? resolveDropTarget(mv.clientX, mv.clientY) : {tile:null, grid:null};
+        var hoverTile = target.tile;
+        var hoverGrid = target.grid;
+        console.log("[drag] drop at", mv && mv.clientX, mv && mv.clientY,
+          "| hoverTile:", hoverTile ? hoverTile.dataset.tileId : null,
+          "| hoverGrid cat:", hoverGrid ? hoverGrid.dataset.catId : null);
+
+        a.classList.remove("dragging");
+        a.style.pointerEvents = "";
+        clearSwapHighlight();
+        if(ghost){ ghost.remove(); ghost = null; }
+
+        if(hoverTile && hoverTile.dataset.tileId !== tile.id){
+          console.log("[drag] -> swap with", hoverTile.dataset.tileId);
+          var targetTile = data.tiles.find(function(t){ return t.id === hoverTile.dataset.tileId; });
+          if(targetTile){
+            var di = data.tiles.indexOf(tile);
+            var ti = data.tiles.indexOf(targetTile);
+            var tmpCat = tile.categoryId;
+            tile.categoryId = targetTile.categoryId;
+            targetTile.categoryId = tmpCat;
+            data.tiles[di] = targetTile;
+            data.tiles[ti] = tile;
+            save();
+          }
+        } else if(hoverGrid){
+          console.log("[drag] -> insert into grid", hoverGrid.dataset.catId);
+          var newCatId = hoverGrid.dataset.catId;
+          var afterEl = getDragAfterElementByPoint(hoverGrid, mv.clientX, mv.clientY, tile.id);
+          var others = data.tiles.filter(function(t){ return t.id !== tile.id; });
+          var insertIdx;
+          if(afterEl){
+            var afterTile = data.tiles.find(function(t){ return t.id === afterEl.dataset.tileId; });
+            insertIdx = others.indexOf(afterTile);
+            if(insertIdx < 0) insertIdx = others.length;
+          } else {
+            insertIdx = others.length;
+          }
+          tile.categoryId = newCatId;
+          others.splice(insertIdx, 0, tile);
+          data.tiles = others;
+          save();
+        } else {
+          console.log("[drag] -> no valid target, cancelled");
+        }
+        render();
+      }
+      function onUp(mv){ finish(mv); }
+
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+      activeDragCleanup = function(){ finish(null); };
     });
 
-    // Hovering directly over this tile while dragging another one: highlight
-    // it as a swap target and stop the event reaching the grid, so the grid's
-    // own "insert between tiles" logic doesn't fight with the swap.
-    a.addEventListener("dragover", function(ev){
-      if(a.classList.contains("dragging")) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      if(!a.classList.contains("tile-swap-target")){
-        clearSwapHighlight();
-        a.classList.add("tile-swap-target");
-      }
-    });
-    a.addEventListener("dragleave", function(){
-      a.classList.remove("tile-swap-target");
-    });
-    a.addEventListener("drop", function(ev){
-      if(a.classList.contains("dragging")) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      a.classList.remove("tile-swap-target");
-      var tileId = ev.dataTransfer.getData("text/plain");
-      var draggedTile = data.tiles.find(function(t){ return t.id === tileId; });
-      var targetTile = tile;
-      if(draggedTile && targetTile && draggedTile.id !== targetTile.id){
-        var di = data.tiles.indexOf(draggedTile);
-        var ti = data.tiles.indexOf(targetTile);
-        var tmpCat = draggedTile.categoryId;
-        draggedTile.categoryId = targetTile.categoryId;
-        targetTile.categoryId = tmpCat;
-        data.tiles[di] = targetTile;
-        data.tiles[ti] = draggedTile;
-        save();
-      }
-      render();
+    a.addEventListener("click", function(ev){
+      if(suppressClick){ ev.preventDefault(); suppressClick = false; }
     });
 
     return a;
@@ -856,43 +964,13 @@
     prev.forEach(function(el){ el.classList.remove("tile-swap-target"); });
   }
 
-  function setupDropZone(grid){
-    grid.addEventListener("dragover", function(ev){
-      ev.preventDefault();
-      var dragging = document.querySelector(".tile.dragging");
-      if(!dragging) return;
-      var afterEl = getDragAfterElement(grid, ev.clientX, ev.clientY);
-      if(afterEl == null){
-        grid.insertBefore(dragging, grid.querySelector(".tile-add"));
-      } else {
-        grid.insertBefore(dragging, afterEl);
-      }
+  function getDragAfterElementByPoint(grid, x, y, excludeTileId){
+    var els = Array.prototype.slice.call(grid.querySelectorAll(".tile")).filter(function(el){
+      return el.dataset.tileId !== excludeTileId;
     });
-    grid.addEventListener("drop", function(ev){
-      ev.preventDefault();
-      try{
-        var tileId = ev.dataTransfer.getData("text/plain");
-        var draggedTile = data.tiles.find(function(t){ return t.id === tileId; });
-        if(!draggedTile) return;
-        var newCatId = grid.dataset.catId;
-        commitOrderFromDOM(newCatId);
-        draggedTile.categoryId = newCatId;
-        save();
-      } finally {
-        clearSwapHighlight();
-        render();
-      }
-    });
-  }
-
-  function getDragAfterElement(grid, x, y){
-    var els = Array.prototype.slice.call(grid.querySelectorAll(".tile:not(.dragging)"));
     var closest = {offset: Number.NEGATIVE_INFINITY, element: null};
     els.forEach(function(child){
       var box = child.getBoundingClientRect();
-      var offsetY = y - box.top - box.height/2;
-      var offsetX = x - box.left - box.width/2;
-      var offset = -Math.hypot(offsetX, offsetY);
       if(y >= box.top && y <= box.bottom){
         var horizOffset = x - box.left - box.width/2;
         if(horizOffset < 0 && horizOffset > closest.offset){
@@ -901,15 +979,6 @@
       }
     });
     return closest.element;
-  }
-
-  function commitOrderFromDOM(catId){
-    var grid = container.querySelector('.tile-grid[data-cat-id="'+catId+'"]');
-    if(!grid) return;
-    var orderedIds = Array.prototype.slice.call(grid.querySelectorAll(".tile")).map(function(el){ return el.dataset.tileId; });
-    var others = data.tiles.filter(function(t){ return t.categoryId !== catId; });
-    var thisCatTiles = orderedIds.map(function(id){ return data.tiles.find(function(t){ return t.id === id; }); }).filter(Boolean);
-    data.tiles = others.concat(thisCatTiles);
   }
 
   // ---------- Tile modal ----------
@@ -1135,10 +1204,27 @@
   catOverlay.addEventListener("click", function(ev){ if(ev.target === catOverlay) catOverlay.hidden = true; });
 
   document.getElementById("cat-add-new").addEventListener("click", function(){
-    var color = PALETTE[data.categories.length % PALETTE.length];
-    data.categories.push({id:uid(), name:"Nouvelle catégorie", color:color, colSpan:12});
-    save(); render(); renderCatList();
+    addCategory();
+    renderCatList();
   });
+
+  document.getElementById("add-category-btn").addEventListener("click", function(){
+    addCategory();
+  });
+
+  function addCategory(){
+    var color = PALETTE[data.categories.length % PALETTE.length];
+    data.categories.push({
+      id: uid(),
+      name: "Nouvelle catégorie",
+      color: color,
+      colSpan: 12,
+      col: 0,
+      top: nextCategoryTop()
+    });
+    save();
+    render();
+  }
 
   // ---------- Init ----------
   applyWallpaper();
