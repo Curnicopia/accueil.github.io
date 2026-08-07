@@ -204,11 +204,6 @@
   }
   .tile:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 6px 18px rgba(0,0,0,0.35);}
   .tile.dragging{opacity:0.35;}
-  .tile.tile-swap-target{
-    border-color:var(--accent-2);
-    box-shadow:0 0 0 3px rgba(79,168,160,0.35);
-    transform:scale(0.93);
-  }
   .tile-ghost{
     border-radius:12px;
     opacity:0.92;
@@ -829,7 +824,6 @@
       if(ev.button !== 0) return;
       if(ev.target.closest(".tile-actions")) return;
       if(activeDragCleanup){ activeDragCleanup(); }
-      console.log("[drag] mousedown on", tile.name, "| elementsFromPoint supported:", typeof document.elementsFromPoint === "function");
 
       var startX = ev.clientX, startY = ev.clientY;
       var moved = false;
@@ -838,17 +832,15 @@
       var grabDx = startX - rect.left;
       var grabDy = startY - rect.top;
 
-      function resolveDropTarget(x, y){
+      function resolveDropGrid(x, y){
         var stack = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [document.elementFromPoint(x, y)];
         for(var i=0; i<stack.length; i++){
           var el = stack[i];
           if(!el) continue;
-          var t = el.closest(".tile");
-          if(t && t !== a) return {tile:t, grid:t.closest(".tile-grid")};
           var g = el.closest(".tile-grid");
-          if(g) return {tile:null, grid:g};
+          if(g) return g;
         }
-        return {tile:null, grid:null};
+        return null;
       }
 
       function onMove(mv){
@@ -856,7 +848,6 @@
           var dx = mv.clientX - startX, dy = mv.clientY - startY;
           if(Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
           moved = true;
-          console.log("[drag] started:", tile.name);
           a.classList.add("dragging");
           a.style.pointerEvents = "none";
           ghost = a.cloneNode(true);
@@ -872,12 +863,6 @@
         }
         ghost.style.left = (mv.clientX - grabDx) + "px";
         ghost.style.top = (mv.clientY - grabDy) + "px";
-
-        var target = resolveDropTarget(mv.clientX, mv.clientY);
-        clearSwapHighlight();
-        if(target.tile && target.tile.dataset.tileId !== tile.id){
-          target.tile.classList.add("tile-swap-target");
-        }
       }
 
       function finish(mv){
@@ -891,33 +876,13 @@
         }
         suppressClick = true;
 
-        var target = mv ? resolveDropTarget(mv.clientX, mv.clientY) : {tile:null, grid:null};
-        var hoverTile = target.tile;
-        var hoverGrid = target.grid;
-        console.log("[drag] drop at", mv && mv.clientX, mv && mv.clientY,
-          "| hoverTile:", hoverTile ? hoverTile.dataset.tileId : null,
-          "| hoverGrid cat:", hoverGrid ? hoverGrid.dataset.catId : null);
+        var hoverGrid = mv ? resolveDropGrid(mv.clientX, mv.clientY) : null;
 
         a.classList.remove("dragging");
         a.style.pointerEvents = "";
-        clearSwapHighlight();
         if(ghost){ ghost.remove(); ghost = null; }
 
-        if(hoverTile && hoverTile.dataset.tileId !== tile.id){
-          console.log("[drag] -> swap with", hoverTile.dataset.tileId);
-          var targetTile = data.tiles.find(function(t){ return t.id === hoverTile.dataset.tileId; });
-          if(targetTile){
-            var di = data.tiles.indexOf(tile);
-            var ti = data.tiles.indexOf(targetTile);
-            var tmpCat = tile.categoryId;
-            tile.categoryId = targetTile.categoryId;
-            targetTile.categoryId = tmpCat;
-            data.tiles[di] = targetTile;
-            data.tiles[ti] = tile;
-            save();
-          }
-        } else if(hoverGrid){
-          console.log("[drag] -> insert into grid", hoverGrid.dataset.catId);
+        if(hoverGrid){
           var newCatId = hoverGrid.dataset.catId;
           var afterEl = getDragAfterElementByPoint(hoverGrid, mv.clientX, mv.clientY, tile.id);
           var others = data.tiles.filter(function(t){ return t.id !== tile.id; });
@@ -933,8 +898,6 @@
           others.splice(insertIdx, 0, tile);
           data.tiles = others;
           save();
-        } else {
-          console.log("[drag] -> no valid target, cancelled");
         }
         render();
       }
@@ -957,11 +920,6 @@
     div.className = "tile-fallback";
     div.textContent = (name||"?").trim().charAt(0).toUpperCase();
     return div;
-  }
-
-  function clearSwapHighlight(){
-    var prev = container.querySelectorAll(".tile-swap-target");
-    prev.forEach(function(el){ el.classList.remove("tile-swap-target"); });
   }
 
   function getDragAfterElementByPoint(grid, x, y, excludeTileId){
