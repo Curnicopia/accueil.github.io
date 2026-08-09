@@ -801,6 +801,22 @@
       document.addEventListener("mouseup", onUp);
       activeDragCleanup = finish;
     });
+
+    handle.addEventListener("dblclick", function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      var containerRect = container.getBoundingClientRect();
+      var colWidth = containerRect.width / 12;
+      var tilesCount = data.tiles.filter(function(t){ return t.categoryId === cat.id; }).length;
+      if(tilesCount === 0) return;
+      var rowWidthPx = tilesCount * 80 + (tilesCount - 1) * 10;
+      var neededPx = rowWidthPx + 20 /* category-inner side padding */ + 12 /* category-inner side margins */;
+      var maxSpan = 12 - (cat.col || 0);
+      var neededSpan = Math.min(maxSpan, Math.max(3, Math.ceil(neededPx / colWidth)));
+      cat.colSpan = neededSpan;
+      save();
+      render();
+    });
   }
 
   var DRAG_THRESHOLD = 5;
