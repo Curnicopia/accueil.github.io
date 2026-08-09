@@ -103,8 +103,7 @@
     cursor:grabbing;
   }
   .category.cat-moving .category-inner{
-    box-shadow:0 16px 36px rgba(0,0,0,0.5);
-    border-color:var(--accent);
+    box-shadow:0 16px 36px rgba(0,0,0,0.5), inset 0 0 0 1px var(--accent);
   }
   .category-inner{
     margin:6px;
@@ -112,9 +111,9 @@
     padding:8px 10px 10px;
     background:rgba(36,40,44,0.55);
     backdrop-filter:blur(8px);
-    border:1px solid rgba(255,255,255,0.06);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06);
     position:relative;
-    transition:box-shadow .15s ease, border-color .15s ease;
+    transition:box-shadow .15s ease;
   }
   .cat-resize-handle{
     position:absolute;
@@ -633,8 +632,25 @@
     }catch(e){ return null; }
   }
 
+  function computeFitPx(tilesCount){
+    var effectiveCount = Math.max(tilesCount, 1);
+    var rowWidthPx = effectiveCount * 80 + (effectiveCount - 1) * 10;
+    return rowWidthPx + 20 /* category-inner side padding */ + 12 /* category-inner side margins */;
+  }
+
+  function computeFitSpan(tilesCount, col, colWidthPx){
+    var maxSpan = Math.max(1, 12 - (col || 0));
+    if(tilesCount === 0) return Math.min(3, maxSpan);
+    var rowWidthPx = tilesCount * 80 + (tilesCount - 1) * 10;
+    var neededPx = rowWidthPx + 20 /* category-inner side padding */ + 12 /* category-inner side margins */;
+    return Math.min(maxSpan, Math.max(3, Math.ceil(neededPx / colWidthPx)));
+  }
+
   function render(){
     container.innerHTML = "";
+    var containerWidthPx = container.clientWidth || container.getBoundingClientRect().width;
+    var colWidthPx = containerWidthPx / 12;
+
     data.categories.forEach(function(cat){
       var tiles = data.tiles.filter(function(t){ return t.categoryId === cat.id; });
 
@@ -642,8 +658,16 @@
       catEl.className = "category";
       catEl.dataset.catId = cat.id;
       catEl.style.left = ((cat.col || 0) / 12 * 100) + "%";
-      catEl.style.width = ((cat.colSpan || 12) / 12 * 100) + "%";
       catEl.style.top = (cat.top || 0) + "px";
+
+      if(cat.autoFit !== false && colWidthPx > 0){
+        cat.colSpan = computeFitSpan(tiles.length, cat.col, colWidthPx);
+        var exactPx = computeFitPx(tiles.length);
+        var maxPx = (12 - (cat.col || 0)) * colWidthPx;
+        catEl.style.width = Math.min(exactPx, maxPx) + "px";
+      } else {
+        catEl.style.width = ((cat.colSpan || 12) / 12 * 100) + "%";
+      }
 
       var innerEl = document.createElement("div");
       innerEl.className = "category-inner";
@@ -767,12 +791,31 @@
     });
   }
 
+  var lastResizeClickAt = {};
+
+  function autoFitCategoryWidth(cat){
+    cat.autoFit = true;
+    save();
+    render();
+  }
+
   function setupCategoryResize(handle, catEl, cat){
     handle.addEventListener("mousedown", function(ev){
       if(ev.button !== 0) return;
       ev.preventDefault();
       ev.stopPropagation();
       if(activeDragCleanup){ activeDragCleanup(); }
+
+      // Native "dblclick" doesn't survive render() rebuilding the handle
+      // element between clicks, so double-click is detected manually here
+      // using a timestamp stored outside the DOM.
+      var now = Date.now();
+      var isDoubleClick = (now - (lastResizeClickAt[cat.id] || 0)) < 400;
+      lastResizeClickAt[cat.id] = isDoubleClick ? 0 : now;
+      if(isDoubleClick){
+        autoFitCategoryWidth(cat);
+        return;
+      }
 
       handle.classList.add("resizing");
       var containerRect = container.getBoundingClientRect();
@@ -793,6 +836,7 @@
         activeDragCleanup = null;
         handle.classList.remove("resizing");
         cat.colSpan = pendingSpan;
+        cat.autoFit = false;
         save();
         render();
       }
@@ -800,22 +844,6 @@
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
       activeDragCleanup = finish;
-    });
-
-    handle.addEventListener("dblclick", function(ev){
-      ev.preventDefault();
-      ev.stopPropagation();
-      var containerRect = container.getBoundingClientRect();
-      var colWidth = containerRect.width / 12;
-      var tilesCount = data.tiles.filter(function(t){ return t.categoryId === cat.id; }).length;
-      if(tilesCount === 0) return;
-      var rowWidthPx = tilesCount * 80 + (tilesCount - 1) * 10;
-      var neededPx = rowWidthPx + 20 /* category-inner side padding */ + 12 /* category-inner side margins */;
-      var maxSpan = 12 - (cat.col || 0);
-      var neededSpan = Math.min(maxSpan, Math.max(3, Math.ceil(neededPx / colWidth)));
-      cat.colSpan = neededSpan;
-      save();
-      render();
     });
   }
 
