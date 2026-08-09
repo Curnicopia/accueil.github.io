@@ -19,6 +19,7 @@
     --border:#3a3f44;
     --danger:#d9634d;
     --radius:10px;
+    --tile-size:60px;
   }
   *{box-sizing:border-box;}
   html,body{height:100%;overflow-x:hidden;}
@@ -196,12 +197,12 @@
     flex-wrap:wrap;
     gap:10px;
     position:relative;
-    min-height:80px;
+    min-height:var(--tile-size);
   }
 
   .tile{
-    width:80px;height:80px;
-    flex:0 0 80px;
+    width:var(--tile-size);height:var(--tile-size);
+    flex:0 0 var(--tile-size);
     border-radius:12px;
     background:var(--panel-2);
     border:1px solid var(--border);
@@ -537,6 +538,7 @@
     <div id="cat-list"></div>
     <button class="btn" id="cat-add-new" style="margin-top:12px;width:100%;">+ Ajouter une catégorie</button>
     <button class="btn" id="cat-realign" style="margin-top:8px;width:100%;">Réaligner l'espacement</button>
+    <button class="btn" id="cat-autofit-all" style="margin-top:8px;width:100%;">Réactiver l'ajustement automatique (largeur)</button>
     <div class="modal-actions">
       <button class="btn primary" id="cat-close" style="flex:none;width:100%;">Fermer</button>
     </div>
@@ -632,16 +634,18 @@
     }catch(e){ return null; }
   }
 
+  var TILE_SIZE = 60; // keep in sync with --tile-size in the CSS above
+
   function computeFitPx(tilesCount){
     var effectiveCount = Math.max(tilesCount, 1);
-    var rowWidthPx = effectiveCount * 80 + (effectiveCount - 1) * 10;
+    var rowWidthPx = effectiveCount * TILE_SIZE + (effectiveCount - 1) * 10;
     return rowWidthPx + 20 /* category-inner side padding */ + 12 /* category-inner side margins */;
   }
 
   function computeFitSpan(tilesCount, col, colWidthPx){
     var maxSpan = Math.max(1, 12 - (col || 0));
     if(tilesCount === 0) return Math.min(3, maxSpan);
-    var rowWidthPx = tilesCount * 80 + (tilesCount - 1) * 10;
+    var rowWidthPx = tilesCount * TILE_SIZE + (tilesCount - 1) * 10;
     var neededPx = rowWidthPx + 20 /* category-inner side padding */ + 12 /* category-inner side margins */;
     return Math.min(maxSpan, Math.max(3, Math.ceil(neededPx / colWidthPx)));
   }
@@ -824,20 +828,24 @@
       var startSpan = cat.colSpan || 12;
       var maxSpan = 12 - (cat.col || 0);
       var pendingSpan = startSpan;
+      var moved = false;
 
       function onMove(mv){
+        if(Math.abs(mv.clientX - startX) >= 3){ moved = true; }
         var deltaCols = Math.round((mv.clientX - startX) / colWidth);
         pendingSpan = Math.min(maxSpan, Math.max(3, startSpan + deltaCols));
-        catEl.style.width = (pendingSpan / 12 * 100) + "%";
+        if(moved){ catEl.style.width = (pendingSpan / 12 * 100) + "%"; }
       }
       function finish(){
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
         activeDragCleanup = null;
         handle.classList.remove("resizing");
-        cat.colSpan = pendingSpan;
-        cat.autoFit = false;
-        save();
+        if(moved){
+          cat.colSpan = pendingSpan;
+          cat.autoFit = false;
+          save();
+        }
         render();
       }
       function onUp(){ finish(); }
@@ -1252,6 +1260,12 @@
 
   document.getElementById("cat-realign").addEventListener("click", function(){
     realignCategorySpacing();
+  });
+
+  document.getElementById("cat-autofit-all").addEventListener("click", function(){
+    data.categories.forEach(function(cat){ cat.autoFit = true; });
+    save();
+    render();
   });
 
   document.getElementById("add-category-btn").addEventListener("click", function(){
