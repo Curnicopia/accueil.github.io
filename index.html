@@ -766,13 +766,53 @@
       var colWidthPx = containerRect.width / 12;
       var startMouseX = ev.clientX, startMouseY = ev.clientY;
       var startLeft = catEl.offsetLeft, startTop = catEl.offsetTop;
-      var maxLeft = Math.max(0, container.clientWidth - catEl.offsetWidth);
+      var width = catEl.offsetWidth, height = catEl.offsetHeight;
+      var maxLeft = Math.max(0, container.clientWidth - width);
       var pendingLeft = startLeft, pendingTop = startTop;
+      var SNAP = 14;
+
+      var otherRects = Array.prototype.slice.call(container.querySelectorAll(".category"))
+        .filter(function(el){ return el !== catEl; })
+        .map(function(el){
+          return {
+            left: el.offsetLeft,
+            right: el.offsetLeft + el.offsetWidth,
+            top: el.offsetTop,
+            bottom: el.offsetTop + el.offsetHeight
+          };
+        });
+
       catEl.classList.add("cat-moving");
 
       function onMove(mv){
-        pendingLeft = Math.min(Math.max(0, startLeft + (mv.clientX - startMouseX)), maxLeft);
-        pendingTop = Math.max(0, startTop + (mv.clientY - startMouseY));
+        var rawLeft = Math.min(Math.max(0, startLeft + (mv.clientX - startMouseX)), maxLeft);
+        var rawTop = Math.max(0, startTop + (mv.clientY - startMouseY));
+
+        // Magnetic snap: if an edge of this category lands close to an edge
+        // of another category it vertically/horizontally overlaps with,
+        // snap flush against it so they butt together with no gap or overlap.
+        var bestLeftDist = SNAP, snappedLeft = null;
+        var bestTopDist = SNAP, snappedTop = null;
+
+        otherRects.forEach(function(r){
+          var vOverlap = rawTop < r.bottom && rawTop + height > r.top;
+          if(vOverlap){
+            var dRight = Math.abs(rawLeft - r.right);
+            if(dRight < bestLeftDist){ bestLeftDist = dRight; snappedLeft = r.right; }
+            var dLeft = Math.abs((rawLeft + width) - r.left);
+            if(dLeft < bestLeftDist){ bestLeftDist = dLeft; snappedLeft = r.left - width; }
+          }
+          var hOverlap = rawLeft < r.right && rawLeft + width > r.left;
+          if(hOverlap){
+            var dBottom = Math.abs(rawTop - r.bottom);
+            if(dBottom < bestTopDist){ bestTopDist = dBottom; snappedTop = r.bottom; }
+            var dTop = Math.abs((rawTop + height) - r.top);
+            if(dTop < bestTopDist){ bestTopDist = dTop; snappedTop = r.top - height; }
+          }
+        });
+
+        pendingLeft = Math.min(Math.max(0, snappedLeft != null ? snappedLeft : rawLeft), maxLeft);
+        pendingTop = Math.max(0, snappedTop != null ? snappedTop : rawTop);
         catEl.style.left = pendingLeft + "px";
         catEl.style.top = pendingTop + "px";
       }
@@ -781,10 +821,9 @@
         document.removeEventListener("mouseup", onUp);
         activeDragCleanup = null;
         catEl.classList.remove("cat-moving");
-        var newCol = Math.round(pendingLeft / colWidthPx);
-        newCol = Math.max(0, Math.min(12 - (cat.colSpan || 12), newCol));
-        cat.col = newCol;
-        cat.top = Math.max(0, Math.round(pendingTop / 20) * 20);
+        var maxCol = Math.max(0, 12 - (cat.colSpan || 12));
+        cat.col = Math.max(0, Math.min(maxCol, pendingLeft / colWidthPx));
+        cat.top = Math.max(0, pendingTop);
         save();
         render();
       }
