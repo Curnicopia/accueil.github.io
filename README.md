@@ -1,106 +1,167 @@
-A simple, customizable and fully local web dashboard for organizing your favorite websites.
+# Personal Web Dashboard
 
-🇫🇷 Présentation
-Personal Web Dashboard
+Un tableau de bord web simple, personnalisable et entièrement local pour organiser vos sites web et services en ligne préférés.
 
-Une page d'accueil web personnalisable permettant de regrouper et d'organiser facilement ses sites et services favoris.
+A simple, customizable and fully local web dashboard for organizing your favorite websites and online services.
 
-L'objectif est de disposer d'un espace simple, visuel et personnalisable pour accéder rapidement à ses sites préférés, tout en conservant une organisation adaptée à ses propres besoins.
+![Dashboard screenshot](capture.png)
 
-✨ Fonctionnalités
+---
 
-🔗 Raccourcis vers vos sites favoris
-Ajoutez vos propres liens et accédez directement aux sites concernés.
+## 🇫🇷 Français
 
-📂 Organisation par catégories
-Créez autant de catégories que nécessaire afin de classer vos raccourcis.
+### Présentation
 
-🖱️ Organisation libre
-Déplacez les catégories et les raccourcis à la souris afin de créer votre propre disposition.
+**Personal Web Dashboard** est une page d'accueil web personnalisable permettant de regrouper, organiser et accéder rapidement à ses sites et services favoris.
 
-📐 Catégories redimensionnables
-Ajustez la largeur des catégories ou utilisez l'ajustement automatique.
+L'interface est conçue pour être simple, visuelle et flexible, afin que chacun puisse créer une organisation adaptée à ses besoins.
 
-🖼️ Icônes personnalisables
-Les favicons des sites sont récupérés automatiquement, mais vous pouvez également utiliser vos propres images.
+### ✨ Fonctionnalités
 
-🎨 Fond d'écran personnalisable
-Choisissez parmi plusieurs dégradés, une couleur unie ou utilisez votre propre image.
+- 🔗 **Raccourcis vers vos sites favoris**  
+  Ajoutez vos propres liens et accédez directement aux sites concernés.
 
-🕐 Date et heure
-Une horloge affiche automatiquement l'heure et la date du jour.
+- 📑 **Onglets / pages multiples**  
+  Créez plusieurs pages indépendantes et organisez-les par thème, par exemple :
+  - 🏠 Général
+  - 🎮 Jeux
+  - 💻 Informatique
+  - 🎬 Multimédia
+  - 📰 Actualités
+  - 🛒 Achats
 
-💾 Sauvegarde automatique
-La configuration est enregistrée directement dans le navigateur grâce au stockage local (localStorage).
+- 📂 **Organisation par catégories**  
+  Chaque page peut contenir ses propres catégories afin de regrouper les raccourcis de manière logique.
 
-🚫 Aucun compte nécessaire
-La page fonctionne sans inscription ni système de compte.
+- 🖱️ **Organisation libre**  
+  Déplacez les catégories et les raccourcis à la souris afin de créer votre propre disposition.
 
-🔒 Fonctionnement local
+- 📐 **Catégories redimensionnables**  
+  Ajustez la largeur des catégories manuellement ou utilisez l'ajustement automatique.
 
-Les données de personnalisation sont conservées localement dans le navigateur. Les raccourcis, catégories, positions, icônes personnalisées et paramètres d'affichage sont donc mémorisés sans nécessiter de serveur ou de base de données.
+- 🖼️ **Icônes personnalisables**  
+  Les favicons des sites sont récupérés automatiquement. Vous pouvez également utiliser vos propres images.
 
-Cela permet également d'utiliser la page simplement comme un fichier web statique.
+- 🎨 **Fond d'écran personnalisable**  
+  Choisissez parmi plusieurs dégradés, une couleur unie ou utilisez votre propre image.
 
-🛠️ Technologies
+- 🕐 **Date et heure**  
+  Une horloge affiche automatiquement l'heure et la date du jour.
+
+- 💾 **Sauvegarde automatique**  
+  La configuration est enregistrée directement dans le navigateur grâce au stockage local (`localStorage`).
+
+- 🚫 **Aucun compte nécessaire**  
+  Le dashboard fonctionne sans inscription, serveur ou base de données.
+
+### 📑 Organisation en plusieurs pages
+
+Les onglets permettent de créer plusieurs espaces de travail au sein du même dashboard.
+
+Chaque onglet peut être consacré à un thème particulier et contenir ses propres raccourcis et catégories.
+
+Cela permet par exemple de séparer facilement les sites personnels, professionnels, de loisirs ou liés à différents centres d'intérêt.
+
+### 🔒 Fonctionnement local
+
+Les données de personnalisation sont conservées localement dans le navigateur.
+
+Les onglets, catégories, raccourcis, positions, icônes personnalisées et paramètres d'affichage sont ainsi mémorisés sans nécessiter de serveur ou de base de données.
+
+Le projet peut donc être utilisé comme une simple page web statique.
+
+### 🛠️ Technologies
 
 Le projet repose sur des technologies web standards :
 
-HTML
-CSS
-JavaScript
-LocalStorage
+- HTML
+- CSS
+- JavaScript
+- LocalStorage
 
 Aucune bibliothèque ou framework externe n'est nécessaire pour son fonctionnement.
 
-🇬🇧 English version
-Personal Web Dashboard
+---
 
-A customizable web homepage designed to easily organize and access your favorite websites and online services.
+## 🇬🇧 English
 
-The goal is to provide a simple, visual and flexible workspace where users can create their own layout and organize their shortcuts according to their needs.
+### Overview
 
-✨ Features
-🔗 Shortcuts to your favorite websites
-Add your own links and access them directly from the dashboard.
+**Personal Web Dashboard** is a customizable web homepage designed to organize and quickly access your favorite websites and online services.
 
-📂 Category organization
-Create as many categories as needed to organize your shortcuts.
+The interface is designed to be simple, visual and flexible, allowing everyone to create a layout adapted to their own needs.
 
-🖱️ Free layout organization
-Move categories and shortcuts with the mouse to create your own custom layout.
+### ✨ Features
 
-📐 Resizable categories
-Adjust category widths manually or use automatic sizing.
+- 🔗 **Shortcuts to your favorite websites**  
+  Add your own links and access them directly from the dashboard.
 
-🖼️ Custom icons
-Website favicons are automatically retrieved, but you can also use your own images.
+- 📑 **Multiple tabs / pages**  
+  Create multiple independent pages and organize them by theme, for example:
+  - 🏠 General
+  - 🎮 Gaming
+  - 💻 Technology
+  - 🎬 Media
+  - 📰 News
+  - 🛒 Shopping
 
-🎨 Customizable wallpaper
-Choose from several gradients, a solid color, or use your own image.
+- 📂 **Category organization**  
+  Each page can contain its own categories to logically organize shortcuts.
 
-🕐 Date and time
-A built-in clock automatically displays the current time and date.
+- 🖱️ **Free layout organization**  
+  Move categories and shortcuts with the mouse to create your own custom layout.
 
-💾 Automatic saving
-Your configuration is stored directly in the browser using localStorage.
+- 📐 **Resizable categories**  
+  Adjust category widths manually or use automatic sizing.
 
-🚫 No account required
-The dashboard works without registration or user accounts.
+- 🖼️ **Custom icons**  
+  Website favicons are automatically retrieved, but you can also use your own images.
 
-🔒 Local storage
+- 🎨 **Customizable wallpaper**  
+  Choose from several gradients, a solid color, or use your own image.
 
-All customization data is stored locally in the browser. Shortcuts, categories, positions, custom icons and display settings are therefore saved without requiring a server or database.
+- 🕐 **Date and time**  
+  A built-in clock automatically displays the current time and date.
 
-This also makes it possible to use the dashboard as a simple static web page.
+- 💾 **Automatic saving**  
+  Your configuration is stored directly in the browser using `localStorage`.
 
-🛠️ Technologies
+- 🚫 **No account required**  
+  The dashboard works without registration, a server or a database.
+
+### 📑 Multiple-page organization
+
+Tabs allow you to create multiple workspaces within the same dashboard.
+
+Each tab can be dedicated to a specific topic and contain its own shortcuts and categories.
+
+This makes it easy to separate personal websites, work-related resources, entertainment, or different areas of interest.
+
+### 🔒 Local storage
+
+All customization data is stored locally in the browser.
+
+Tabs, categories, shortcuts, positions, custom icons and display settings are therefore saved without requiring a server or database.
+
+The project can therefore be used as a simple static web page.
+
+### 🛠️ Technologies
 
 The project is built using standard web technologies:
 
-HTML
-CSS
-JavaScript
-LocalStorage
+- HTML
+- CSS
+- JavaScript
+- LocalStorage
 
 No external library or framework is required.
+
+---
+
+## 📸 Screenshot
+
+![Dashboard screenshot](images/dashboard.png)
+
+## 📄 License
+
+This project is provided for personal and educational use.
