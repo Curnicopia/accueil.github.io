@@ -1,6 +1,6 @@
 ![Dashboard screenshot](Atrium.png)
 
-#ATRIUM
+# ATRIUM
 
 Un tableau de bord web simple, personnalisable et entièrement local pour organiser vos sites web et services en ligne préférés.
 
