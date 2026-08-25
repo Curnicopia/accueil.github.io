@@ -1,5 +1,5 @@
 ![Dashboard screenshot](Atrium.png)
-# [Fr] ATRIUM
+#ATRIUM
 
 Un tableau de bord web simple, personnalisable et entièrement local pour organiser vos sites web et services en ligne préférés.
 
@@ -7,7 +7,7 @@ A simple, customizable and fully local web dashboard for organizing your favorit
 
 ![Dashboard screenshot](capture.png)
 
-# Atrium
+# [Fr] Atrium
 
 Une page d'accueil de navigateur personnelle — un unique fichier HTML autonome qui transforme votre nouvel onglet en un espace clair et organisé pour vos raccourcis. Pas de serveur, pas de compte, pas d'outils de build, pas de publicité. Un seul fichier à héberger gratuitement et à faire complètement vôtre.
 
