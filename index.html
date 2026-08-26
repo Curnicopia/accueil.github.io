@@ -310,6 +310,14 @@
     transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
     user-select:none;
   }
+  .tile::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    pointer-events:none;
+    background:linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 32%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.16) 100%);
+  }
   .tile:hover{transform:translateY(-2px);border-color:var(--hover-color);box-shadow:0 0 0 1px var(--hover-color), 0 6px 18px rgba(0,0,0,0.35);}
   .tile.dragging{opacity:0.35;}
   .tile-ghost{
