@@ -659,6 +659,18 @@
   </div>
 </div>
 
+<!-- Modal: generic confirmation (replaces native confirm(), which some
+     embedding/preview environments silently block) -->
+<div class="modal-overlay" id="confirm-modal-overlay" hidden>
+  <div class="modal" style="max-width:320px;">
+    <p id="confirm-modal-message" style="color:var(--text);font-size:13px;line-height:1.5;margin:0;"></p>
+    <div class="modal-actions">
+      <button class="btn" id="confirm-cancel-btn">Annuler</button>
+      <button class="btn danger" id="confirm-ok-btn">Supprimer</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   "use strict";
@@ -720,6 +732,7 @@
       tab_new_name: "Nouvel onglet",
       tab_rename_title: "Renommer l'onglet",
       tab_delete_title: "Supprimer l'onglet",
+      tab_delete_confirm: "Supprimer l'onglet « {name} » ? Ses catégories et leurs tuiles seront définitivement supprimées.",
       tab_add_title: "Nouvel onglet",
       days: ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
       months: ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"]
@@ -769,6 +782,7 @@
       tab_new_name: "New tab",
       tab_rename_title: "Rename tab",
       tab_delete_title: "Delete tab",
+      tab_delete_confirm: "Delete the '{name}' tab? Its categories and their tiles will be permanently deleted.",
       tab_add_title: "New tab",
       days: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
       months: ["January","February","March","April","May","June","July","August","September","October","November","December"]
@@ -992,14 +1006,19 @@
 
   function deleteTab(tabId){
     if(data.tabs.length <= 1) return;
-    var fallbackTab = data.tabs.find(function(t){ return t.id !== tabId; });
-    data.categories.forEach(function(cat){
-      if(cat.tabId === tabId){ cat.tabId = fallbackTab.id; }
+    var tab = data.tabs.find(function(t){ return t.id === tabId; });
+    var message = i18n("tab_delete_confirm").replace("{name}", tab ? tab.name : "");
+    showConfirm(message, function(){
+      var catIdsToRemove = data.categories
+        .filter(function(c){ return c.tabId === tabId; })
+        .map(function(c){ return c.id; });
+      data.tiles = data.tiles.filter(function(t){ return catIdsToRemove.indexOf(t.categoryId) === -1; });
+      data.categories = data.categories.filter(function(c){ return c.tabId !== tabId; });
+      data.tabs = data.tabs.filter(function(t){ return t.id !== tabId; });
+      if(data.activeTabId === tabId){ data.activeTabId = data.tabs[0].id; }
+      save();
+      render();
     });
-    data.tabs = data.tabs.filter(function(t){ return t.id !== tabId; });
-    if(data.activeTabId === tabId){ data.activeTabId = fallbackTab.id; }
-    save();
-    render();
   }
 
   function render(){
@@ -1657,6 +1676,30 @@
   document.getElementById("cat-close").addEventListener("click", function(){ catOverlay.hidden = true; });
   catOverlay.addEventListener("click", function(ev){ if(ev.target === catOverlay) catOverlay.hidden = true; });
 
+  // ---------- Generic confirmation modal (replaces native confirm()) ----------
+  var confirmOverlay = document.getElementById("confirm-modal-overlay");
+  var confirmMessageEl = document.getElementById("confirm-modal-message");
+  var confirmOkBtn = document.getElementById("confirm-ok-btn");
+  var confirmCancelBtn = document.getElementById("confirm-cancel-btn");
+  var pendingConfirmCallback = null;
+
+  function showConfirm(message, onConfirm){
+    confirmMessageEl.textContent = message;
+    pendingConfirmCallback = onConfirm;
+    confirmOverlay.hidden = false;
+  }
+  function closeConfirm(){
+    confirmOverlay.hidden = true;
+    pendingConfirmCallback = null;
+  }
+  confirmOkBtn.addEventListener("click", function(){
+    var cb = pendingConfirmCallback;
+    closeConfirm();
+    if(cb) cb();
+  });
+  confirmCancelBtn.addEventListener("click", closeConfirm);
+  confirmOverlay.addEventListener("click", function(ev){ if(ev.target === confirmOverlay) closeConfirm(); });
+
   // ---------- Language ----------
   var langBtn = document.getElementById("lang-btn");
 
@@ -1692,6 +1735,9 @@
     document.getElementById("cat-close").textContent = i18n("categories_close");
 
     document.getElementById("add-category-btn").textContent = i18n("add_category_btn");
+
+    document.getElementById("confirm-cancel-btn").textContent = i18n("tile_cancel");
+    document.getElementById("confirm-ok-btn").textContent = i18n("tile_delete");
 
     // Refresh the tile icon hint to match whichever state it's currently in
     if(typeof renderIconPreview === "function" && !tileModalOverlay.hidden){
