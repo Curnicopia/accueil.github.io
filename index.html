@@ -320,6 +320,7 @@
   }
   .tile:hover{transform:translateY(-2px);border-color:var(--hover-color);box-shadow:0 0 0 1px var(--hover-color), 0 6px 18px rgba(0,0,0,0.35);}
   .tile.dragging{opacity:0.35;}
+  .tile.swap-target{border-color:var(--hover-color);box-shadow:0 0 0 2px var(--hover-color), 0 6px 18px rgba(0,0,0,0.35);transform:scale(0.94);}
   .tile-ghost{
     border-radius:12px;
     opacity:0.92;
@@ -1278,6 +1279,8 @@
     a.rel = "noopener noreferrer";
     a.dataset.tileId = tile.id;
     a.title = tile.name;
+    a.draggable = false;
+    a.addEventListener("dragstart", function(ev){ ev.preventDefault(); });
 
     var iconSrc = tile.icon || faviconUrl(tile.url);
     if(tile.icon){ a.classList.add("has-custom-icon"); }
@@ -1319,10 +1322,29 @@
       if(ev.button !== 0) return;
       if(ev.target.closest(".tile-actions")) return;
       if(activeDragCleanup){ activeDragCleanup(); }
+      ev.preventDefault();
 
       var startX = ev.clientX, startY = ev.clientY;
       var moved = false;
       var ghost = null;
+      var swapTarget = null;
+
+      function resolveSwapTile(x, y){
+        var stack = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [document.elementFromPoint(x, y)];
+        for(var i=0; i<stack.length; i++){
+          var el = stack[i];
+          if(!el) continue;
+          var t = el.closest(".tile");
+          if(t && t !== a && t.dataset.tileId) return t;
+        }
+        return null;
+      }
+      function setSwapTarget(el){
+        if(swapTarget === el) return;
+        if(swapTarget){ swapTarget.classList.remove("swap-target"); }
+        swapTarget = el;
+        if(swapTarget){ swapTarget.classList.add("swap-target"); }
+      }
       var rect = a.getBoundingClientRect();
       var grabDx = startX - rect.left;
       var grabDy = startY - rect.top;
@@ -1358,6 +1380,7 @@
         }
         ghost.style.left = (mv.clientX - grabDx) + "px";
         ghost.style.top = (mv.clientY - grabDy) + "px";
+        setSwapTarget(resolveSwapTile(mv.clientX, mv.clientY));
       }
 
       function finish(mv){
@@ -1376,8 +1399,22 @@
         a.classList.remove("dragging");
         a.style.pointerEvents = "";
         if(ghost){ ghost.remove(); ghost = null; }
+        var dropOn = mv ? resolveSwapTile(mv.clientX, mv.clientY) : null;
+        setSwapTarget(null);
 
-        if(hoverGrid){
+        if(dropOn){
+          // Drop on another tile: swap both positions (and categories).
+          var other = data.tiles.find(function(t){ return t.id === dropOn.dataset.tileId; });
+          var ia = data.tiles.indexOf(tile), ib = data.tiles.indexOf(other);
+          if(other && ia >= 0 && ib >= 0){
+            var catA = tile.categoryId;
+            tile.categoryId = other.categoryId;
+            other.categoryId = catA;
+            data.tiles[ia] = other;
+            data.tiles[ib] = tile;
+            save();
+          }
+        } else if(hoverGrid){
           var newCatId = hoverGrid.dataset.catId;
           var afterEl = getDragAfterElementByPoint(hoverGrid, mv.clientX, mv.clientY, tile.id);
           var others = data.tiles.filter(function(t){ return t.id !== tile.id; });
