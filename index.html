@@ -89,8 +89,9 @@
     cursor:pointer;
     backdrop-filter:blur(6px);
     transition:all .15s ease;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.22);
   }
-  .icon-btn:hover{color:var(--text);border-color:var(--accent);}
+  .icon-btn:hover{color:var(--text);border-color:var(--hover-color);box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 0 0 1px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.35);}
   .icon-btn svg{width:18px;height:18px;}
 
   header .actions{display:flex;gap:8px;}
@@ -133,9 +134,9 @@
     position:relative;
     transition:background .15s ease, border-color .15s ease, color .15s ease;
   }
-  .tab-btn:hover{border-color:rgba(79,143,247,0.55);color:var(--text);background:rgba(36,40,44,0.28);}
+  .tab-btn:hover{border-color:var(--hover-color);color:var(--text);background:rgba(36,40,44,0.28);box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 0 0 1px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.35);}
   .tab-btn.active{background:rgba(36,40,44,0.18);border-color:rgba(255,255,255,0.06);color:var(--text);backdrop-filter:blur(10px) saturate(130%);-webkit-backdrop-filter:blur(10px) saturate(130%);}
-  .tab-btn.active:hover{background:rgba(36,40,44,0.26);border-color:rgba(79,143,247,0.55);}
+  .tab-btn.active:hover{background:rgba(36,40,44,0.26);border-color:var(--hover-color);box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 0 0 1px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.35);}
   .tab-label{
     overflow:hidden;
     white-space:nowrap;
@@ -186,9 +187,9 @@
     cursor:pointer;
     font-size:15px;
     line-height:1;
-    transition:border-color .15s ease, color .15s ease;
+    transition:all .15s ease;
   }
-  #tab-add-btn:hover{border-color:var(--accent);color:var(--accent);}
+  #tab-add-btn:hover{border-color:var(--hover-color);color:var(--hover-color);box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 0 0 1px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.35);}
 
   #categories-container{
     position:relative;
@@ -271,7 +272,7 @@
     transition:opacity .15s ease, color .15s ease;
   }
   .category:hover .cat-drag-handle{opacity:1;}
-  .cat-drag-handle:hover{color:var(--accent);}
+  .cat-drag-handle:hover{color:var(--hover-color);}
   .cat-drag-handle svg{width:14px;height:14px;}
   .category.cat-moving{opacity:0.96;}
   .category-head h2{
@@ -292,7 +293,7 @@
     transition:opacity .15s ease, color .15s ease;
   }
   .category:hover .cat-edit-btn{opacity:1;}
-  .cat-edit-btn:hover{color:var(--accent);}
+  .cat-edit-btn:hover{color:var(--hover-color);}
   .cat-edit-btn svg{width:14px;height:14px;}
 
   .tile-grid{
@@ -415,7 +416,7 @@
     padding:0;
     box-shadow:0 1px 4px rgba(0,0,0,0.5);
   }
-  .tile-actions button:hover{color:var(--text);border-color:var(--hover-color);}
+  .tile-actions button:hover{color:var(--text);border-color:var(--hover-color);box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 0 0 1px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.35);}
   .tile-actions svg{width:11px;height:11px;}
 
   #add-category-btn{
@@ -434,7 +435,7 @@
     backdrop-filter:blur(10px) saturate(130%);
     -webkit-backdrop-filter:blur(10px) saturate(130%);
   }
-  #add-category-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(36,40,44,0.28);}
+  #add-category-btn:hover{border-color:var(--hover-color);color:var(--hover-color);background:rgba(36,40,44,0.28);box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 0 0 1px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.35);transform:translateY(-2px);}
 
   /* Modal */
   .modal-overlay{
@@ -543,12 +544,13 @@
     font-weight:500;
     cursor:pointer;
     transition:all .15s ease;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.22);
   }
-  .btn:hover{border-color:var(--accent);}
+  .btn:hover{border-color:var(--hover-color);box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 0 0 1px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.35);}
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#1b1e21;font-weight:600;}
-  .btn.primary:hover{filter:brightness(1.08);}
+  .btn.primary:hover{border-color:var(--hover-color);filter:brightness(1.08);}
   .btn.danger{color:var(--danger);}
-  .btn.danger:hover{border-color:var(--danger);}
+  .btn.danger:hover{border-color:var(--danger);box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 0 0 1px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.35);}
 
   .wallpaper-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;}
   .wp-swatch{
