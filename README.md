@@ -1,6 +1,6 @@
 # Atrium — Dashboard de tuiles / Tile Dashboard
 
-![Dashboard screenshot](images/capture.png)
+![Dashboard screenshot](capture.png)
 
 > Page d’accueil personnelle en un seul fichier HTML/CSS/JS.  
 > Personal start page in a single HTML/CSS/JS file.
